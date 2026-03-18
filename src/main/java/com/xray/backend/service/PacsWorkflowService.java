@@ -51,8 +51,7 @@ public class PacsWorkflowService {
    */
   @Transactional
   public String processCapturedImage(MultipartFile imageFile, DicomMetadataRequest metadata) {
-    Study study = studyService.findByStudyUid(metadata.studyUid())
-        .orElseThrow(() -> new IllegalArgumentException("Study not found: " + metadata.studyUid()));
+    Study study = studyService.getOrCreateStudyForDicom(metadata);
 
     Path tempImage = null;
     try {

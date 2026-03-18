@@ -55,6 +55,25 @@ public class PatientService {
     return patientRepository.findByPatientUid(patientUid);
   }
 
+  public Optional<Patient> findByPatientIdExternal(String patientId) {
+    return patientRepository.findByPatientIdExternal(patientId);
+  }
+
+  /**
+   * Find patient by external ID, or create one for dev/testing.
+   */
+  @Transactional
+  public Patient findOrCreateByPatientIdAndName(String patientId, String patientName) {
+    return patientRepository.findByPatientIdExternal(patientId)
+        .orElseGet(() -> {
+          Patient p = new Patient();
+          p.setPatientUid(java.util.UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase());
+          p.setPatientIdExternal(patientId);
+          p.setPatientName(patientName);
+          return patientRepository.save(p);
+        });
+  }
+
   public List<Patient> getAllPatients() {
     return patientRepository.findAll();
   }
