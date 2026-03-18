@@ -55,7 +55,7 @@ public class PacsWorkflowService {
   @Transactional
   public String processCapturedImage(MultipartFile imageFile, DicomMetadataRequest metadata) {
     Study study = studyService.getOrCreateStudyForDicom(metadata);
-    log.debug("Using study {} for patient {}", study.getStudyInstanceUid(), metadata.patientId());
+    log.info("Using study {} for patient {}", study.getStudyInstanceUid(), metadata.patientId());
 
     Path tempImage = null;
     try {

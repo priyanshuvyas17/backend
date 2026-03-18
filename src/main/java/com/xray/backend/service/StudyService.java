@@ -67,20 +67,38 @@ public class StudyService {
         : UIDUtils.createUID();
 
     return studyRepository.findByStudyInstanceUid(studyUid)
-        .orElseGet(() -> {
-          log.info("Study not found, creating new one: {}", studyUid);
-          Patient patient = patientService.findOrCreateByPatientIdAndName(
-              metadata.patientId(), metadata.patientName());
-          Study study = new Study();
-          study.setPatient(patient);
-          study.setStudyInstanceUid(studyUid);
-          study.setStudyDate(metadata.studyDate());
-          study.setModality(metadata.modality() != null ? metadata.modality() : MODALITY_XRAY);
-          study.setStudyStatus("IN_PROGRESS");
-          studyRepository.save(study);
-          log.info("Auto-created study {} for patient {} (dev/testing)", studyUid, metadata.patientId());
-          return study;
-        });
+        .orElseGet(() -> createStudyForDicom(studyUid, metadata));
+  }
+
+  private Study createStudyForDicom(String studyUid, DicomMetadataRequest metadata) {
+    try {
+      log.info("Study not found, creating new one: {}", studyUid);
+      Patient patient = patientService.findOrCreateByPatientIdAndName(
+          metadata.patientId(), metadata.patientName());
+      Study study = new Study();
+      study.setPatient(patient);
+      study.setStudyInstanceUid(studyUid);
+      study.setStudyDate(metadata.studyDate());
+      study.setModality(metadata.modality() != null ? metadata.modality() : MODALITY_XRAY);
+      study.setStudyStatus("IN_PROGRESS");
+      studyRepository.save(study);
+      log.info("Auto-created study {} for patient {} (dev/testing)", studyUid, metadata.patientId());
+      return study;
+    } catch (Exception e) {
+      log.warn("Failed to create study {}, retrying with generated UID: {}", studyUid, e.getMessage());
+      String newUid = UIDUtils.createUID();
+      Patient patient = patientService.findOrCreateByPatientIdAndName(
+          metadata.patientId(), metadata.patientName());
+      Study study = new Study();
+      study.setPatient(patient);
+      study.setStudyInstanceUid(newUid);
+      study.setStudyDate(metadata.studyDate());
+      study.setModality(metadata.modality() != null ? metadata.modality() : MODALITY_XRAY);
+      study.setStudyStatus("IN_PROGRESS");
+      studyRepository.save(study);
+      log.info("Created study with generated UID {} for patient {}", newUid, metadata.patientId());
+      return study;
+    }
   }
 
   @Transactional
