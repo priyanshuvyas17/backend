@@ -67,10 +67,10 @@ public class PacsWorkflowService {
       String instanceId;
       try {
         instanceId = orthancService.storeInstance(dicomPath);
-        log.info("DICOM stored in PACS, instance ID: {}", instanceId);
+        log.info("Stored in PACS: {}", instanceId);
       } catch (Exception e) {
         instanceId = FALLBACK_PREFIX + System.currentTimeMillis();
-        log.warn("PACS unavailable, using fallback instanceId {}: {}", instanceId, e.getMessage());
+        log.warn("PACS not reachable, using fallback: {}", e.getMessage());
       }
 
       String seriesUid = UIDUtils.createUID();
