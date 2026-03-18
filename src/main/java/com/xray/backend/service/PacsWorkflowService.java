@@ -21,11 +21,13 @@ import java.util.UUID;
 
 /**
  * Orchestrates the full PACS workflow: image -> DICOM conversion -> Orthanc storage -> DB update.
+ * PACS is optional: if Orthanc fails, uses fallback ID and continues (developer-friendly).
  */
 @Service
 public class PacsWorkflowService {
 
   private static final Logger log = LoggerFactory.getLogger(PacsWorkflowService.class);
+  private static final String FALLBACK_PREFIX = "LOCAL-";
 
   private final DicomConversionService dicomConversionService;
   private final OrthancService orthancService;
@@ -47,11 +49,13 @@ public class PacsWorkflowService {
   }
 
   /**
-   * Process captured image: convert to DICOM, store in PACS, update DB.
+   * Process captured image: convert to DICOM, store in PACS (if available), update DB.
+   * Never throws for missing study - auto-creates. PACS failure uses fallback ID.
    */
   @Transactional
   public String processCapturedImage(MultipartFile imageFile, DicomMetadataRequest metadata) {
     Study study = studyService.getOrCreateStudyForDicom(metadata);
+    log.debug("Using study {} for patient {}", study.getStudyInstanceUid(), metadata.patientId());
 
     Path tempImage = null;
     try {
@@ -59,7 +63,15 @@ public class PacsWorkflowService {
       imageFile.transferTo(tempImage.toFile());
 
       Path dicomPath = dicomConversionService.convertToDicom(tempImage, metadata);
-      String orthancId = orthancService.storeInstance(dicomPath);
+
+      String instanceId;
+      try {
+        instanceId = orthancService.storeInstance(dicomPath);
+        log.info("DICOM stored in PACS, instance ID: {}", instanceId);
+      } catch (Exception e) {
+        instanceId = FALLBACK_PREFIX + System.currentTimeMillis();
+        log.warn("PACS unavailable, using fallback instanceId {}: {}", instanceId, e.getMessage());
+      }
 
       String seriesUid = UIDUtils.createUID();
       Series series = new Series();
@@ -76,14 +88,14 @@ public class PacsWorkflowService {
       img.setSeries(series);
       img.setImageUuid(UUID.randomUUID().toString());
       img.setFilePath(dicomPath.toAbsolutePath().toString());
-      img.setSopInstanceUid(orthancId);
+      img.setSopInstanceUid(instanceId);
       img.setFileSize(fileSize);
       img.setWidth(0);
       img.setHeight(0);
       dicomImageRepository.save(img);
 
-      log.info("Image processed and stored: {}", fileName);
-      return orthancId;
+      log.info("Image processed and stored: {} (instanceId: {})", fileName, instanceId);
+      return instanceId;
     } catch (IOException e) {
       throw new ImageProcessingException("Failed to process image", e);
     } finally {
@@ -91,8 +103,8 @@ public class PacsWorkflowService {
         try {
           Files.deleteIfExists(tempImage);
         } catch (IOException e) {
-        log.warn("Failed to delete temp file: {}", tempImage, e);
-      }
+          log.warn("Failed to delete temp file: {}", tempImage, e);
+        }
       }
     }
   }

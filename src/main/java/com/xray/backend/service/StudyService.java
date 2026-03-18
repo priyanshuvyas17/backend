@@ -58,21 +58,27 @@ public class StudyService {
 
   /**
    * Get existing study or create one for dev/testing when convert-and-store is used.
+   * Never throws - always returns a study (creates if missing).
    */
   @Transactional
   public Study getOrCreateStudyForDicom(DicomMetadataRequest metadata) {
-    return studyRepository.findByStudyInstanceUid(metadata.studyUid())
+    String studyUid = (metadata.studyUid() != null && !metadata.studyUid().isBlank())
+        ? metadata.studyUid().trim()
+        : UIDUtils.createUID();
+
+    return studyRepository.findByStudyInstanceUid(studyUid)
         .orElseGet(() -> {
+          log.info("Study not found, creating new one: {}", studyUid);
           Patient patient = patientService.findOrCreateByPatientIdAndName(
               metadata.patientId(), metadata.patientName());
           Study study = new Study();
           study.setPatient(patient);
-          study.setStudyInstanceUid(metadata.studyUid());
+          study.setStudyInstanceUid(studyUid);
           study.setStudyDate(metadata.studyDate());
-          study.setModality(metadata.modality());
+          study.setModality(metadata.modality() != null ? metadata.modality() : MODALITY_XRAY);
           study.setStudyStatus("IN_PROGRESS");
           studyRepository.save(study);
-          log.info("Auto-created study {} for patient {} (dev/testing)", metadata.studyUid(), metadata.patientId());
+          log.info("Auto-created study {} for patient {} (dev/testing)", studyUid, metadata.patientId());
           return study;
         });
   }
