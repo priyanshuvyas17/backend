@@ -17,6 +17,7 @@ public class ApplicationStartupListener implements ApplicationListener<Applicati
   public void onApplicationEvent(@NonNull ApplicationReadyEvent event) {
     Environment env = event.getApplicationContext().getEnvironment();
     String port = env.getProperty("local.server.port", "unknown");
-    log.info("🚀 Backend started successfully on port {}", port);
+    String address = env.getProperty("server.address", "0.0.0.0");
+    log.info("🚀 Backend started successfully - listening on {}:{}", address, port);
   }
 }

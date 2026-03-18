@@ -38,9 +38,9 @@ RUN chown -R appuser:appgroup /app
 
 USER appuser
 
-# Render sets PORT env var dynamically; Spring Boot reads it via server.port=${PORT:10000}
+# Render sets PORT env var at runtime; must listen on this port
 ENV PORT=10000
-EXPOSE ${PORT}
+EXPOSE 10000
 
-# Run the application
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Use shell to expand $PORT - Render injects PORT dynamically
+CMD ["sh", "-c", "java -Dserver.port=${PORT:-10000} -Dserver.address=0.0.0.0 -jar app.jar"]
