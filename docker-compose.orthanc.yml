@@ -1,0 +1,13 @@
+# Orthanc PACS for X-Ray Pro 5000
+# Run: docker-compose -f docker-compose.orthanc.yml up -d
+version: '3'
+services:
+  orthanc:
+    image: jodogne/orthanc
+    ports:
+      - "8042:8042"   # REST API
+      - "4242:4242"   # DICOM
+    volumes:
+      - orthanc-db:/var/lib/orthanc/db
+volumes:
+  orthanc-db: {}
