@@ -4,17 +4,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.Map;
 
 @RestController
 public class HealthController {
 
   /**
-   * GET /health - Health check for load balancers and mobile app.
+   * GET / - Root URL for quick browser check (Render, load balancers).
+   */
+  @GetMapping("/")
+  public String root() {
+    return "Backend is running 🚀";
+  }
+
+  /**
+   * GET /health - Health check for load balancers, Render, and mobile app.
    */
   @GetMapping("/health")
-  public ResponseEntity<Map<String, String>> health() {
-    return ResponseEntity.ok(Map.of("status", "OK"));
+  public ResponseEntity<Map<String, Object>> health() {
+    return ResponseEntity.ok(Map.of(
+        "status", "UP",
+        "service", "backend",
+        "timestamp", Instant.now().toString()));
   }
 
   /**

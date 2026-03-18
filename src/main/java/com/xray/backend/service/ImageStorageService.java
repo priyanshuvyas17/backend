@@ -219,7 +219,8 @@ public class ImageStorageService {
       generatePreview(dicomPath, previewPath, m);
       m.setPreviewPath(previewPath.toString());
       repository.save(m);
-    } catch (IOException ignored) {
+    } catch (IOException e) {
+      logger.warn("Failed to generate preview for {}: {}", m.getPath(), e.getMessage());
     }
   }
   private record DicomInfo(String patientName, String modality, String studyDate, String studyInstanceUid, String seriesInstanceUid, String sopInstanceUid) {

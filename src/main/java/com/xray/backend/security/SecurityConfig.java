@@ -31,6 +31,10 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/", "/health", "/test", "/welcome", "/error").permitAll()
+                .requestMatchers("/api/dicom/ping", "/api/auth/**", "/api/health").permitAll()
+                .requestMatchers("/api/preview/**", "/api/upload/**", "/api/scan-info/**").permitAll()
+                .requestMatchers("/system/info").permitAll()
                 .anyRequest().permitAll()
             );
 
@@ -40,6 +44,7 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(false);
         config.setAllowedOriginPatterns(List.of("*"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"));
         config.setAllowedHeaders(List.of("*"));

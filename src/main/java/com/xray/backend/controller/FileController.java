@@ -3,6 +3,8 @@ package com.xray.backend.controller;
 import com.xray.backend.entity.ImageMetadata;
 import com.xray.backend.repository.ImageMetadataRepository;
 import com.xray.backend.service.ImageStorageService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -21,6 +23,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api")
 public class FileController {
+
+  private static final Logger log = LoggerFactory.getLogger(FileController.class);
   private final ImageMetadataRepository repository;
   private final ImageStorageService storageService;
 
@@ -71,7 +75,8 @@ public class FileController {
       try {
         storageService.generatePreviewOnDemand(id);
         m = repository.findById(id).orElse(m);
-      } catch (Exception ignored) {
+      } catch (Exception ex) {
+        log.warn("Failed to generate preview for file id {}: {}", id, ex.getMessage());
       }
     }
     if (m.getPreviewPath() == null || !Files.exists(Path.of(m.getPreviewPath()))) {

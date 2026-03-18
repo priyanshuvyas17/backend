@@ -19,7 +19,7 @@ public class MachineConfigController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getConfig(Authentication authentication) {
+    public ResponseEntity<?> getConfig(@SuppressWarnings("unused") Authentication authentication) {
         // In a real app, we extract User ID from authentication principal
         // For now, assuming email is the principal name
         // We need to look up the user by email to get ID, or change Service to look up by Email.

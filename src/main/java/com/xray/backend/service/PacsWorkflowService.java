@@ -1,6 +1,7 @@
 package com.xray.backend.service;
 
 import com.xray.backend.dto.DicomMetadataRequest;
+import com.xray.backend.exception.ImageProcessingException;
 import com.xray.backend.entity.DicomImage;
 import com.xray.backend.entity.Series;
 import com.xray.backend.entity.Study;
@@ -85,12 +86,14 @@ public class PacsWorkflowService {
       log.info("Image processed and stored: {}", fileName);
       return orthancId;
     } catch (IOException e) {
-      throw new RuntimeException("Failed to process image", e);
+      throw new ImageProcessingException("Failed to process image", e);
     } finally {
       if (tempImage != null) {
         try {
           Files.deleteIfExists(tempImage);
-        } catch (IOException ignored) {}
+        } catch (IOException e) {
+        log.warn("Failed to delete temp file: {}", tempImage, e);
+      }
       }
     }
   }

@@ -8,8 +8,8 @@ import java.time.Instant;
 @RestController
 public class HomeController {
 
-    @GetMapping("/")
-    public Map<String, Object> home() {
+    @GetMapping("/welcome")
+    public Map<String, Object> welcome() {
         return Map.of(
             "status", "running",
             "service", "xray-backend",

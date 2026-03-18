@@ -75,7 +75,6 @@ public class DicomConversionService {
 
   private Attributes createDicomDataset(BufferedImage img, DicomMetadataRequest metadata) {
     Attributes attrs = new Attributes();
-    ElementDictionary dict = ElementDictionary.getStandardElementDictionary();
 
     // Generate UIDs
     String studyUid = metadata.studyUid();

@@ -1,5 +1,6 @@
 package com.xray.backend.service;
 
+import com.xray.backend.exception.DeviceUnreachableException;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -25,7 +26,7 @@ public class XRayTcpService {
         if (checkConnection(ip, port)) {
             return "ACK: " + command;
         } else {
-            throw new RuntimeException("Device unreachable at " + ip + ":" + port);
+            throw new DeviceUnreachableException("Device unreachable at " + ip + ":" + port);
         }
     }
 }

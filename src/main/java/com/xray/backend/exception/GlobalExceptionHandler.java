@@ -7,7 +7,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -77,11 +82,59 @@ public class GlobalExceptionHandler {
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
   }
 
+  @ExceptionHandler(EmailAlreadyInUseException.class)
+  public ResponseEntity<ErrorResponse> handleEmailAlreadyInUse(EmailAlreadyInUseException ex) {
+    logger.warn("Registration failed: {}", ex.getMessage());
+    ErrorResponse body = new ErrorResponse("error", ex.getMessage(), "EMAIL_ALREADY_IN_USE");
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+  }
+
+  @ExceptionHandler(DeviceUnreachableException.class)
+  public ResponseEntity<ErrorResponse> handleDeviceUnreachable(DeviceUnreachableException ex) {
+    logger.warn("Device unreachable: {}", ex.getMessage());
+    ErrorResponse body = new ErrorResponse("error", ex.getMessage(), "DEVICE_UNREACHABLE");
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+  }
+
+  @ExceptionHandler(ImageProcessingException.class)
+  public ResponseEntity<ErrorResponse> handleImageProcessing(ImageProcessingException ex) {
+    logger.error("Image processing failed", ex);
+    ErrorResponse body = new ErrorResponse("error", ex.getMessage(), "IMAGE_PROCESSING_FAILED");
+    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+  }
+
+  @ExceptionHandler(ConstraintViolationException.class)
+  public ResponseEntity<ErrorResponse> handleConstraintViolation(ConstraintViolationException ex) {
+    String message = ex.getConstraintViolations().stream()
+        .map(v -> v.getPropertyPath() + ": " + v.getMessage())
+        .collect(Collectors.joining("; "));
+    logger.warn("Constraint violation: {}", message);
+    ErrorResponse body = new ErrorResponse("error", message, "VALIDATION_FAILED");
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+  }
+
+  @ExceptionHandler(MethodArgumentNotValidException.class)
+  public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+    String message = ex.getBindingResult().getFieldErrors().stream()
+        .map(err -> err.getField() + ": " + err.getDefaultMessage())
+        .collect(Collectors.joining("; "));
+    logger.warn("Validation failed: {}", message);
+    ErrorResponse body = new ErrorResponse("error", message, "VALIDATION_FAILED");
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+  }
+
   @ExceptionHandler(IllegalArgumentException.class)
   public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
     logger.warn("Invalid argument", ex);
     ErrorResponse body = new ErrorResponse("error", ex.getMessage(), "INVALID_REQUEST");
     return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+  }
+
+  @ExceptionHandler(NoHandlerFoundException.class)
+  public ResponseEntity<ErrorResponse> handleNotFound(NoHandlerFoundException ex) {
+    logger.warn("No handler found: {} {}", ex.getHttpMethod(), ex.getRequestURL());
+    ErrorResponse body = new ErrorResponse("error", "Not Found: " + ex.getRequestURL(), "NOT_FOUND");
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
   }
 
   @ExceptionHandler(Exception.class)

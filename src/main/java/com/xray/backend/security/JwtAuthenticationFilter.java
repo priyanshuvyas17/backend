@@ -13,11 +13,15 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtTokenProvider tokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
@@ -30,6 +34,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         this.customUserDetailsService = customUserDetailsService;
     }
 
+    /**
+     * Skip this filter entirely for public endpoints - no JWT logic runs at all.
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/preview")
+                || path.startsWith("/api/upload")
+                || path.startsWith("/api/scan-info")
+                || path.startsWith("/system/info")
+                || path.startsWith("/api/auth")
+                || path.startsWith("/api/health")
+                || path.startsWith("/api/dicom/ping")
+                || path.startsWith("/health")
+                || path.startsWith("/test")
+                || path.equals("/welcome")
+                || path.equals("/")
+                || path.equals("/favicon.ico")
+                || path.equals("/error");
+    }
+
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
@@ -37,52 +62,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String path = request.getRequestURI();
+        String jwt = getJwtFromRequest(request);
 
-        // ✅ Skip JWT for public endpoints (upload, preview, system info, auth, health)
-        if (path.startsWith("/api/preview")
-                || path.startsWith("/api/upload")
-                || path.startsWith("/api/scan-info")
-                || path.startsWith("/system/info")
-                || path.startsWith("/api/auth")
-                || path.startsWith("/api/health")
-                || path.equals("/")
-                || path.equals("/favicon.ico")
-                || path.equals("/error")) {
-
+        // No Authorization header → allow request to pass without blocking
+        if (!StringUtils.hasText(jwt)) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-
-            String jwt = getJwtFromRequest(request);
-
-            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-
+            if (tokenProvider.validateToken(jwt)) {
                 String username = tokenProvider.getUsernameFromJWT(jwt);
-
-                UserDetails userDetails =
-                        customUserDetailsService.loadUserByUsername(username);
-
+                UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
                                 userDetails,
                                 null,
                                 userDetails.getAuthorities()
                         );
-
                 authentication.setDetails(
                         new WebAuthenticationDetailsSource().buildDetails(request)
                 );
-
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-
         } catch (Exception ex) {
-
-            System.out.println("JWT authentication failed: " + ex.getMessage());
-
+            log.debug("JWT authentication failed: {}", ex.getMessage());
         }
 
         filterChain.doFilter(request, response);

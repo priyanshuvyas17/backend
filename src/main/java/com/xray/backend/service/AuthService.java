@@ -1,6 +1,7 @@
 package com.xray.backend.service;
 
 import com.xray.backend.entity.User;
+import com.xray.backend.exception.EmailAlreadyInUseException;
 import com.xray.backend.repository.UserRepository;
 import com.xray.backend.security.JwtTokenProvider;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -35,8 +36,8 @@ public class AuthService {
     }
 
     public User registerUser(String name, String email, String password) {
-        if(userRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email already in use");
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new EmailAlreadyInUseException("Email already in use");
         }
 
         User user = new User();

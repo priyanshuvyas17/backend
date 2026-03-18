@@ -14,9 +14,13 @@ import java.util.UUID;
 import org.dcm4che3.data.Attributes;
 import org.dcm4che3.data.Tag;
 import org.dcm4che3.io.DicomInputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class DicomWebService {
+
+  private static final Logger log = LoggerFactory.getLogger(DicomWebService.class);
   private final ImageStorageService storageService;
   private final PatientRepository patientRepository;
   private final StudyRepository studyRepository;
@@ -61,7 +65,8 @@ public class DicomWebService {
         seUid = attrs.getString(Tag.SeriesInstanceUID, null);
         spUid = attrs.getString(Tag.SOPInstanceUID, null);
       }
-    } catch (Exception ignored) {
+    } catch (Exception ex) {
+      log.warn("Could not read DICOM metadata from {}: {}", path, ex.getMessage());
     }
 
     final String fpn = pn;

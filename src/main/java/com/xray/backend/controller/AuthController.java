@@ -5,14 +5,25 @@ import com.xray.backend.entity.User;
 import com.xray.backend.repository.UserRepository;
 import com.xray.backend.service.AuthService;
 import com.xray.backend.service.MachineConfigService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-record LoginRequest(String email, String password) {}
+record LoginRequest(
+    @NotBlank(message = "Email is required") String email,
+    @NotBlank(message = "Password is required") String password
+) {}
+
 record LoginResponse(String token, Long userId, String email, String name, String machineIp, Integer machinePort) {}
-record RegisterRequest(String name, String email, String password) {}
+
+record RegisterRequest(
+    @NotBlank(message = "Name is required") String name,
+    @NotBlank(message = "Email is required") String email,
+    @NotBlank(message = "Password is required") String password
+) {}
 
 @RestController
 @RequestMapping("/api/auth")
@@ -30,7 +41,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         logger.info("LOGIN ATTEMPT: Email={}", req.email());
         
         String token = authService.authenticateUser(req.email(), req.password());
@@ -40,7 +51,8 @@ public class AuthController {
             return ResponseEntity.status(401).body("Authentication failed: No token generated");
         }
         
-        User user = userRepository.findByEmail(req.email()).orElseThrow();
+        User user = userRepository.findByEmail(req.email())
+                .orElseThrow(() -> new IllegalStateException("User not found after authentication"));
         long userId = user.getId();
         
         // Update/Init Machine Config with current Server IP
@@ -59,7 +71,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest req) {
+    public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         logger.info("REGISTER ATTEMPT: Email={}", req.email());
         
         User user = authService.registerUser(req.name(), req.email(), req.password());

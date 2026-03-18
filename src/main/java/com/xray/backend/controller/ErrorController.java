@@ -18,10 +18,10 @@ public class ErrorController {
 
     @GetMapping(value = "/error", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, Object>> error(HttpServletRequest request) {
-        Object status = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
-        Object message = request.getAttribute(RequestDispatcher.ERROR_MESSAGE);
-        int code = status != null ? (Integer) status : HttpStatus.INTERNAL_SERVER_ERROR.value();
-        String msg = message != null ? message.toString() : "An error occurred";
+        Object statusObj = request.getAttribute(RequestDispatcher.ERROR_STATUS_CODE);
+        Object messageObj = request.getAttribute(RequestDispatcher.ERROR_MESSAGE);
+        int code = (statusObj instanceof Integer) ? (Integer) statusObj : HttpStatus.INTERNAL_SERVER_ERROR.value();
+        String msg = (messageObj != null) ? messageObj.toString() : "An error occurred";
         return ResponseEntity.status(code)
                 .body(Map.of(
                         "status", "error",
