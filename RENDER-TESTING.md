@@ -1,5 +1,11 @@
 # Render Deployment – Test Instructions
 
+## Database
+
+The app uses **H2 in-memory** by default – no external database required. It works on Render out of the box.
+
+For local MySQL, set `SPRING_PROFILES_ACTIVE=mysql` in your environment.
+
 ## URLs to Open in Browser (GET)
 
 | URL | Expected Response |

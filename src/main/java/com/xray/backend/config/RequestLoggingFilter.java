@@ -20,6 +20,11 @@ public class RequestLoggingFilter extends OncePerRequestFilter {
   private static final Logger log = LoggerFactory.getLogger(RequestLoggingFilter.class);
 
   @Override
+  protected boolean shouldNotFilter(HttpServletRequest request) {
+    return true; // TEMPORARILY DISABLED to fix hanging - set to false to re-enable
+  }
+
+  @Override
   protected void doFilterInternal(
       HttpServletRequest request,
       HttpServletResponse response,
