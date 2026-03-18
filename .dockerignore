@@ -1,0 +1,47 @@
+# Build output
+target/
+build/
+out/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# Documentation (not needed in image)
+*.md
+README*
+CHANGELOG*
+LICENSE*
+
+# Test resources (tests are skipped in Docker build)
+src/test/
+
+# Local development
+.env
+.env.*
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+docker-compose*.yaml
+
+# Uploads and runtime data (ephemeral, use volumes in production)
+uploads/
+previews/
+storage/
