@@ -17,6 +17,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
 /**
@@ -64,14 +66,18 @@ public class PacsWorkflowService {
 
       Path dicomPath = dicomConversionService.convertToDicom(tempImage, metadata);
 
-      String instanceId;
       try {
-        instanceId = orthancService.storeInstance(dicomPath);
-        log.info("Stored in PACS: {}", instanceId);
+        orthancService.storeInstance(dicomPath);
+        log.info("Stored in PACS");
       } catch (Exception e) {
-        instanceId = FALLBACK_PREFIX + System.currentTimeMillis();
-        log.warn("PACS not reachable, using fallback: {}", e.getMessage());
+        log.warn("PACS not reachable, continuing with local storage: {}", e.getMessage());
       }
+
+      String fileName = UUID.randomUUID().toString() + ".dcm";
+      Path storageDir = Paths.get("uploads/dicom");
+      Files.createDirectories(storageDir);
+      Path targetPath = storageDir.resolve(fileName);
+      Files.copy(dicomPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
 
       String seriesUid = UIDUtils.createUID();
       Series series = new Series();
@@ -82,20 +88,19 @@ public class PacsWorkflowService {
       series.setBodyPartExamined(metadata.bodyPartExamined());
       seriesRepository.save(series);
 
-      long fileSize = Files.size(dicomPath);
-      String fileName = dicomPath.getFileName().toString();
+      long fileSize = Files.size(targetPath);
       DicomImage img = new DicomImage();
       img.setSeries(series);
       img.setImageUuid(UUID.randomUUID().toString());
-      img.setFilePath(dicomPath.toAbsolutePath().toString());
-      img.setSopInstanceUid(instanceId);
+      img.setFilePath(targetPath.toAbsolutePath().toString());
+      img.setSopInstanceUid(fileName);
       img.setFileSize(fileSize);
       img.setWidth(0);
       img.setHeight(0);
       dicomImageRepository.save(img);
 
-      log.info("Image processed and stored: {} (instanceId: {})", fileName, instanceId);
-      return instanceId;
+      log.info("Image processed and stored: {}", fileName);
+      return fileName;
     } catch (IOException e) {
       throw new ImageProcessingException("Failed to process image", e);
     } finally {
