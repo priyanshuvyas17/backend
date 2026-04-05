@@ -87,3 +87,15 @@ export async function checkHealth(): Promise<ApiResult<{ status: string }>> {
 export async function checkTest(): Promise<ApiResult<Record<string, unknown>>> {
   return safeFetch<Record<string, unknown>>(api.test);
 }
+
+export type BackendConnectionInfo = {
+  baseUrl: string;
+  scheme: string;
+  host: string;
+  port: number;
+  portDescription: string;
+};
+
+export async function fetchBackendConnection(): Promise<ApiResult<BackendConnectionInfo>> {
+  return safeFetch<BackendConnectionInfo>(api.backendConnection);
+}

@@ -32,6 +32,7 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/health", "/test", "/welcome", "/error").permitAll()
+                .requestMatchers("/dicom/**", "/pacs/**", "/api/dicom/**", "/api/pacs/**").permitAll()
                 .requestMatchers("/api/dicom/ping", "/api/auth/**", "/api/health").permitAll()
                 .requestMatchers("/api/preview/**", "/api/upload/**", "/api/scan-info/**").permitAll()
                 .requestMatchers("/system/info").permitAll()

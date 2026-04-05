@@ -1,5 +1,6 @@
 package com.xray.backend.controller;
 
+import com.xray.backend.dto.pacs.OrthancHealthResult;
 import com.xray.backend.service.OrthancService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -9,7 +10,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/pacs")
-@CrossOrigin("*")
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class PacsController {
 
   private final OrthancService orthancService;
@@ -19,14 +20,25 @@ public class PacsController {
   }
 
   /**
+   * GET /api/pacs/health — same semantics as {@code GET /pacs/health}.
+   */
+  @GetMapping("/health")
+  public ResponseEntity<Map<String, String>> health() {
+    OrthancHealthResult r = orthancService.checkHealth();
+    return ResponseEntity.ok(Map.of("status", r.status(), "message", r.message()));
+  }
+
+  /**
    * GET /api/pacs/status - Check if PACS is reachable.
    */
   @GetMapping("/status")
   public ResponseEntity<Map<String, Object>> getStatus() {
-    boolean reachable = orthancService.isReachable();
+    OrthancHealthResult r = orthancService.checkHealth();
+    boolean reachable = "UP".equals(r.status());
     return ResponseEntity.ok(Map.of(
         "reachable", reachable,
-        "message", reachable ? "PACS is online" : "PACS is not reachable"));
+        "message", r.message(),
+        "status", r.status()));
   }
 
   /**
@@ -54,5 +66,21 @@ public class PacsController {
   public ResponseEntity<List<String>> getSeries() {
     List<String> series = orthancService.getSeriesList();
     return ResponseEntity.ok(series);
+  }
+
+  /**
+   * GET /api/pacs/instances — instance IDs from Orthanc.
+   */
+  @GetMapping("/instances")
+  public ResponseEntity<List<String>> getInstances() {
+    return ResponseEntity.ok(orthancService.getInstances());
+  }
+
+  /**
+   * GET /api/pacs/instances/{id} — full Orthanc instance JSON.
+   */
+  @GetMapping("/instances/{id}")
+  public ResponseEntity<Map<String, Object>> getInstance(@PathVariable String id) {
+    return ResponseEntity.ok(orthancService.getInstance(id));
   }
 }

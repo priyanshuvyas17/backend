@@ -4,19 +4,31 @@
  */
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { checkHealth, checkTest, type ApiResult } from '../api/safeApi';
+import {
+  checkHealth,
+  checkTest,
+  fetchBackendConnection,
+  type ApiResult,
+  type BackendConnectionInfo,
+} from '../api/safeApi';
 import { api } from '../config/api';
+import { parseBackendUrl } from '../utils/parseBackendUrl';
 
 export default function ConnectionTestScreen() {
   const [health, setHealth] = useState<ApiResult<{ status: string }> | null>(null);
   const [test, setTest] = useState<ApiResult<Record<string, unknown>> | null>(null);
+  const [conn, setConn] = useState<ApiResult<BackendConnectionInfo> | null>(null);
+
+  const parsed = parseBackendUrl(api.base);
 
   const runTests = async () => {
     setHealth(null);
     setTest(null);
-    const [h, t] = await Promise.all([checkHealth(), checkTest()]);
+    setConn(null);
+    const [h, t, c] = await Promise.all([checkHealth(), checkTest(), fetchBackendConnection()]);
     setHealth(h);
     setTest(t);
+    setConn(c);
   };
 
   useEffect(() => {
@@ -26,7 +38,43 @@ export default function ConnectionTestScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>Connection Test</Text>
-      <Text style={styles.url}>Backend: {api.base}</Text>
+
+      <View style={styles.hostBlock}>
+        <Text style={styles.kicker}>BACKEND HOST (from config)</Text>
+        <Text style={styles.hostFull} selectable>
+          {parsed.host}
+        </Text>
+        <Text style={styles.kicker}>PORT</Text>
+        <Text style={styles.portLine} selectable>
+          {parsed.portLabel}
+        </Text>
+        <Text style={styles.hint}>
+          Public HTTPS on Render uses port 443 by default (no :443 in the URL). Internal container port
+          (e.g. 10000) is not what the phone connects to.
+        </Text>
+      </View>
+
+      {conn && conn.ok ? (
+        <View style={styles.hostBlock}>
+          <Text style={styles.kicker}>BACKEND HOST (from server)</Text>
+          <Text style={styles.hostFull} selectable>
+            {conn.data.host}
+          </Text>
+          <Text style={styles.kicker}>PORT</Text>
+          <Text style={styles.portLine} selectable>
+            {conn.data.port} — {conn.data.portDescription}
+          </Text>
+          <Text style={styles.monoSmall} selectable>
+            {conn.data.baseUrl}
+          </Text>
+        </View>
+      ) : conn && !conn.ok ? (
+        <Text style={styles.warn}>Could not load /api/public/backend-connection: {conn.error}</Text>
+      ) : null}
+
+      <Text style={styles.url} selectable>
+        API base: {api.base}
+      </Text>
 
       <View style={styles.section}>
         <Text style={styles.label}>GET /health</Text>
@@ -61,6 +109,18 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0f172a' },
   content: { padding: 24 },
   title: { color: '#fff', fontSize: 22, fontWeight: 'bold', marginBottom: 8 },
+  hostBlock: {
+    backgroundColor: '#1e293b',
+    borderRadius: 10,
+    padding: 14,
+    marginBottom: 16,
+  },
+  kicker: { color: '#64748b', fontSize: 11, fontWeight: '600', marginBottom: 4 },
+  hostFull: { color: '#f8fafc', fontSize: 15, marginBottom: 12 },
+  portLine: { color: '#e2e8f0', fontSize: 15, marginBottom: 8 },
+  hint: { color: '#94a3b8', fontSize: 12, lineHeight: 18 },
+  monoSmall: { color: '#94a3b8', fontSize: 12, marginTop: 8 },
+  warn: { color: '#fbbf24', fontSize: 13, marginBottom: 12 },
   url: { color: '#94a3b8', fontSize: 14, marginBottom: 24 },
   section: { marginBottom: 16 },
   label: { color: '#cbd5e1', fontSize: 14, marginBottom: 4 },

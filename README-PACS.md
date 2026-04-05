@@ -55,8 +55,8 @@ spring.datasource.password=xray_pass
 ### 3. Start Spring Boot Backend
 
 ```bash
-cd backend
-mvn spring-boot:run
+cmvn spring-boot:rund backend
+
 ```
 
 Backend runs at **http://localhost:8080**

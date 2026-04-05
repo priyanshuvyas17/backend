@@ -1,5 +1,6 @@
 package com.xray.backend.controller;
 
+import com.xray.backend.dto.pacs.OrthancHealthResult;
 import com.xray.backend.exception.PacsConnectionException;
 import com.xray.backend.service.OrthancService;
 import org.slf4j.Logger;
@@ -11,12 +12,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * PACS proxy - frontend calls backend, backend proxies to Orthanc.
- * Returns safe JSON on connection errors. Timeout protection in OrthancService.
+ * PACS proxy — frontend calls the backend; the backend calls Orthanc with Basic Auth.
+ * List routes return safe JSON on Orthanc errors so mobile UIs do not crash.
  */
 @RestController
 @RequestMapping("/pacs")
-@CrossOrigin("*")
+@CrossOrigin(origins = "*", maxAge = 3600)
 public class PacsProxyController {
 
   private static final Logger log = LoggerFactory.getLogger(PacsProxyController.class);
@@ -27,6 +28,15 @@ public class PacsProxyController {
     this.orthancService = orthancService;
   }
 
+  /**
+   * GET /pacs/health — Orthanc connectivity (always HTTP 200; body carries UP/DOWN).
+   */
+  @GetMapping("/health")
+  public ResponseEntity<Map<String, String>> health() {
+    OrthancHealthResult r = orthancService.checkHealth();
+    return ResponseEntity.ok(Map.of("status", r.status(), "message", r.message()));
+  }
+
   private ResponseEntity<?> safePacsCall(String operation, SafePacsCall call) {
     try {
       return ResponseEntity.ok(call.execute());
@@ -34,13 +44,13 @@ public class PacsProxyController {
       log.warn("[PACS] {} failed: {}", operation, e.getMessage());
       return ResponseEntity.ok(Map.of(
           "error", true,
-          "message", "PACS offline or unreachable",
+          "message", e.getMessage(),
           "data", List.of()));
     } catch (Exception e) {
       log.error("[PACS] {} error", operation, e);
       return ResponseEntity.ok(Map.of(
           "error", true,
-          "message", "PACS error: " + (e.getMessage() != null ? e.getMessage() : "Unknown"),
+          "message", e.getMessage() != null ? e.getMessage() : "Unknown PACS error",
           "data", List.of()));
     }
   }
@@ -53,6 +63,24 @@ public class PacsProxyController {
   @GetMapping("/patients")
   public ResponseEntity<?> getPatients() {
     return safePacsCall("getPatients", orthancService::getPatients);
+  }
+
+  @GetMapping("/studies")
+  public ResponseEntity<?> listStudies() {
+    return safePacsCall("listStudies", orthancService::getStudies);
+  }
+
+  @GetMapping("/instances")
+  public ResponseEntity<?> listInstances() {
+    return safePacsCall("listInstances", orthancService::getInstances);
+  }
+
+  /**
+   * GET /pacs/instances/{id} — Orthanc instance metadata (clean JSON; same shape as Orthanc REST).
+   */
+  @GetMapping("/instances/{id}")
+  public ResponseEntity<?> getInstance(@PathVariable String id) {
+    return safePacsCall("getInstance", () -> orthancService.getInstance(id));
   }
 
   @GetMapping("/patients/{id}/studies")
@@ -74,16 +102,21 @@ public class PacsProxyController {
     return safePacsCall("getSeries", () -> orthancService.getSeries(id));
   }
 
+  /**
+   * Legacy alias — prefer {@link #health()}.
+   */
   @GetMapping("/status")
   public ResponseEntity<Map<String, Object>> getStatus() {
     try {
-      boolean reachable = orthancService.isReachable();
+      OrthancHealthResult r = orthancService.checkHealth();
+      boolean reachable = "UP".equals(r.status());
       return ResponseEntity.ok(Map.of(
           "reachable", reachable,
-          "message", reachable ? "PACS is online" : "PACS is not reachable"));
+          "message", r.message(),
+          "status", r.status()));
     } catch (Exception e) {
       log.warn("[PACS] status check failed: {}", e.getMessage());
-      return ResponseEntity.ok(Map.of("reachable", false, "message", "PACS offline"));
+      return ResponseEntity.ok(Map.of("reachable", false, "message", "PACS offline", "status", "DOWN"));
     }
   }
 }

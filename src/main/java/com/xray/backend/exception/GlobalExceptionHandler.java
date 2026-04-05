@@ -63,9 +63,9 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(DicomProcessingException.class)
   public ResponseEntity<ErrorResponse> handleDicomProcessing(DicomProcessingException ex) {
-    logger.error("DICOM processing error", ex);
+    logger.warn("DICOM processing error: {}", ex.getMessage());
     ErrorResponse body = new ErrorResponse("error", ex.getMessage(), "DICOM_PROCESSING_ERROR");
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
   }
 
   @ExceptionHandler(com.xray.backend.exception.PacsConnectionException.class)
@@ -77,9 +77,9 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler(com.xray.backend.exception.DicomConversionException.class)
   public ResponseEntity<ErrorResponse> handleDicomConversion(com.xray.backend.exception.DicomConversionException ex) {
-    logger.error("DICOM conversion error", ex);
-    ErrorResponse body = new ErrorResponse("error", ex.getMessage(), "DICOM_CONVERSION_FAILURE");
-    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(body);
+    logger.warn("DICOM conversion / validation error: {}", ex.getMessage());
+    ErrorResponse body = new ErrorResponse("error", ex.getMessage(), "INVALID_DICOM_OR_CONVERSION");
+    return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(body);
   }
 
   @ExceptionHandler(EmailAlreadyInUseException.class)

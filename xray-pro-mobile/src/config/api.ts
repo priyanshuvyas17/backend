@@ -17,6 +17,8 @@ export const api = {
   base: API_BASE_URL,
   health: `${API_BASE_URL}/health`,
   test: `${API_BASE_URL}/test`,
+  /** Canonical host/port from server (matches app.base-url on the backend). */
+  backendConnection: `${API_BASE_URL}/api/public/backend-connection`,
   patients: `${API_BASE_URL}/api/patients`,
   studies: `${API_BASE_URL}/api/studies`,
   dicom: `${API_BASE_URL}/api/dicom`,

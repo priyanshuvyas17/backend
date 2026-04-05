@@ -1,1 +1,4 @@
+
+
+mysql -u root -p password Root@12345
 mvn spring-boot:run
